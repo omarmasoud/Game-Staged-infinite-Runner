@@ -1,0 +1,15 @@
+{
+  "name": "rocket-runner-game",
+  "version": "1.0.0",
+  "description": "Computer Graphics Course project",
+  "main": "main.js",
+  "scripts": {
+    "start": "http-server -S -C cert.pem"
+  },
+  "author": "Omar Masoud",
+  "license": "ISC",
+  "dependencies": {
+    "http-server": "^14.1.0",
+    "three": "^0.140.2"
+  }
+}
