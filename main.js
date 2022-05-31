@@ -2,18 +2,48 @@ import * as THREE from 'https://cdn.skypack.dev/three@0.136';
 import { OrbitControls } from 'https://cdn.skypack.dev/three@0.136/examples/jsm/controls/OrbitControls.js';
 import { Water } from 'https://cdn.skypack.dev/three@0.136/examples/jsm/objects/Water.js';
 import { GLTFLoader } from 'https://cdn.skypack.dev/three@0.136/examples/jsm/loaders/GLTFLoader.js';
+
+const cliffOffsets = 600;
+const cliffSpace = 150;
+const cliffCount = 100;
+const cliffScaleMin = 0.05;
+const cliffScaleMax = 0.15;
+
+const destroyZ = 500;
+
+const rocketMaxX = 225;
+const rocketMinX = -325;
+
+const rocketSpeedX = 1000;
+
+let cliffs = []
+
 var water;
 var loader = new GLTFLoader();
 var Island_scene, Island_scene2;
 var rocket;
-const SCALE = 10000;
+const SCALE = 30000;
+
+let sceneAcceleration = 5;
+let sceneVelocity = 100;
+
 let renderer;
 let camera;
 let controls;
 let box;
+
+let movementDelta = 0;
+let movementClock = new THREE.Clock();
+
 let clock = new THREE.Clock();
 let scene;
 const waterGeometry = new THREE.PlaneGeometry(SCALE, SCALE);
+
+function randomRange(start, end)
+{
+	return start + Math.random() * (end-start);
+}
+
 function init() {
 	scene = new THREE.Scene();
 	box = getBox(1, 1, 1);
@@ -22,16 +52,17 @@ function init() {
 	water = new Water(waterGeometry, {
 		textureWidth: 512,
 		textureHeight: 512,
-		waterNormals: new THREE.TextureLoader().load('./assets/Textures/waternormals.jpg', function (texture) {
+		waterNormals: new THREE.TextureLoader().load('./assets/textures/waternormals.jpg', function (texture) {
 			texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
 		}),
 		sunDirection: new THREE.Vector3(),
 		sunColor: 0xffffff,
 		waterColor: 0x004a7e,
-		distortionScale: 3.7,
+		distortionScale: 3.75,
 		fog: scene.fog !== undefined,
 	});
 	water.rotation.x = -Math.PI / 2;
+	water.rotation.z = -Math.PI / 2;
 	scene.add(water);
 	console.log('entering	 loading');
 	//   loader.load('./assets/Models/rocket_ship/scene.gltf',function(object){
@@ -48,6 +79,11 @@ function init() {
 	//   });
 	Island_scene = new island(-500, 0, 100);
 	Island_scene2 = new island(500, 0, 100);
+
+	for(let i = 0; i < cliffCount; i++)
+		cliffs.push([new cliff(-cliffOffsets, 0, -cliffSpace*i), new cliff(cliffOffsets, 0, -cliffSpace*i)])
+
+	// cliff = new cliff(cliffOffsets, 0, 0);
 	var Mothership1=new Mothership(0,900,0,0,0,0,700);
 	var Mothership2=new Mothership(700,950,0,0,1.2,0,700);
 	var Mothership3=new Mothership(-650,900,200,0,-1.6,0,700);
@@ -59,7 +95,7 @@ function init() {
 	var particlegeobuffer = new THREE.BufferGeometry();
 
 	var particleCount = 100000;
-	var particleDistance = 6000;
+	var particleDistance = 6000*3;
 	var starsarr = new Float32Array(particleCount * 3);//for xyz
 	for (let i = 0; i < particleCount * 3; i += 3) {
 
@@ -75,7 +111,7 @@ function init() {
 
 	var particleMat = new THREE.PointsMaterial({
 		color: 'rgb(255, 255, 255)',
-		size: 15,
+		size: 40,
 		map: new THREE.TextureLoader().load('/assets/textures/particle.jpg'),
 		transparent: true,
 		blending: THREE.AdditiveBlending,
@@ -87,8 +123,6 @@ function init() {
 	particlesmesh.name = 'stars';
 
 	scene.add(particlesmesh);
-
-
 
 	box.position.y = box.geometry.parameters.height / 2;
 
@@ -170,7 +204,7 @@ class Rocket {
 		this.rotateleft = false;
 		this.rotatespeed = 0.15;
 		loader.load('assets/Models/rocket_ship/rocket.gltf', (gltf) => {
-			console.log('created rock');
+			console.log('created rocket');
 			this.rocketscene = gltf.scene;
 			this.rocketscene.scale.set(0.5, 0.5, 0.5);
 			scene.add(this.rocketscene);
@@ -179,7 +213,7 @@ class Rocket {
 			this.rocketscene.position.y = 70;
 			this.rocketscene.position.z = 0;
 			//dont change these unless having some scene animations
-			this.rocketscene.rotation.z = -0.8;
+			this.rocketscene.rotation.z = -0.70;
 			this.rocketscene.rotation.x = -1.55;
 			this.rocketscene.rotation.y -= 0.1;
 			this.initialized = true;
@@ -196,33 +230,32 @@ class Rocket {
 			// camera.position.y=rocket.position.y+20;
 			// camera.position.z=rocket.position.z+10;
 			//console.log('initialized');
-			if (this.calctime) {
-				this.timebefore = clock.getElapsedTime();
-				this.calctime = false;
+			// if (this.calctime) {
+			// 	this.timebefore = clock.getElapsedTime();
+			// 	this.calctime = false;
+			// }
+			// console.log("time before is " + this.timebefore);
+			// if (this.decayflag) {
+			// 	this.decayspeed();
+			// }
+			if (this.rotateright && this.rocketscene.position.x < rocketMaxX) {
+				this.rocketscene.position.x += rocketSpeedX*movementDelta;
+				this.rocketscene.position.x = this.rocketscene.position.x > rocketMaxX ? rocketMaxX : this.rocketscene.position.x;
+				// this.rotateright = false;
 			}
-			console.log("time before is " + this.timebefore);
-			if (this.decayflag) {
-				this.decayspeed();
+			if (this.rotateleft && this.rocketscene.position.x > rocketMinX) {
+				this.rocketscene.position.x -= rocketSpeedX*movementDelta;
+				this.rocketscene.position.x = this.rocketscene.position.x < rocketMinX ? rocketMinX : this.rocketscene.position.x;
+				// this.rotateleft = false;
+				// if (clock.getElapsedTime() - this.timebefore < 1) {
+				// 	this.rocketscene.rotation.y -= this.rotatespeed;
+				// 	console.log("rotating left");
+				// }
+				// else {
+				// 	this.rotateleft = false;
+				// }
 			}
-			if (this.rotateright) {
-				if (clock.getElapsedTime() - this.timebefore < 1) {
-					this.rocketscene.rotation.y += this.rotatespeed;
-					console.log("rotating right");
-				}
-				else {
-					this.rotateright = false;
-				}
-			}
-			if (this.rotateleft) {
-				if (clock.getElapsedTime() - this.timebefore < 1) {
-					this.rocketscene.rotation.y -= this.rotatespeed;
-					console.log("rotating left");
-				}
-				else {
-					this.rotateleft = false;
-				}
-			}
-			this.rocketscene.position.z += -this.rocketvelocity;
+			// this.rocketscene.position.z += -this.rocketvelocity;
 
 		}
 	}
@@ -251,16 +284,30 @@ class Rocket {
 		}
 	}
 	rotateRocket(rightorleft) {
-		this.calctime = true;
+		this.calctime = false;
+
 		if (rightorleft === "right") {
 			this.rotateright = true;
 		}
-		else if (rightorleft === "left") {
+
+		if (rightorleft === "left") {
 			this.rotateleft = true;
 		}
 	}
 
+	stopRotateRocket(rightorleft) {
+		this.calctime = false;
+
+		if (rightorleft === "right") {
+			this.rotateright = false;
+		}
+
+		if (rightorleft === "left") {
+			this.rotateleft = false;
+		}
+	}
 }
+
 class island {
 	constructor(x, y, z) {
 		let Island_scene;
@@ -276,8 +323,44 @@ class island {
 		});
 		return Island_scene;
 	}
+}
+
+class cliff {
+
+	constructor(x, y, z) {
+		let instance = this;
+		loader.load('assets/Models/cliffs/scene.gltf', (gltf) => {
+			console.log('created cliff');
+			instance.cliffScene = gltf.scene;
+			let scale = randomRange(cliffScaleMin,cliffScaleMax);
+			instance.cliffScene.scale.set(scale, scale, scale);
+			scene.add(instance.cliffScene);
+			instance.cliffScene.position.x = x;
+			instance.cliffScene.position.y = y;
+			instance.cliffScene.position.z = z;
+			instance.cliffScene.rotation.y = Math.random() * Math.PI * 2;
+			// cliffScene.rotation.x = -1.55;
+		});
+		return this.cliffScene;
+	}
+	
+	update()
+	{
+		if(this.cliffScene)
+		{
+			this.cliffScene.position.z += movementDelta*sceneVelocity;
+
+			if(this.cliffScene.position.z >= destroyZ)
+			{
+				let scale = randomRange(cliffScaleMin,cliffScaleMax);
+				this.cliffScene.position.z -= cliffCount*cliffSpace;
+			}
+			// console.log(this.cliffScene);
+		}
+	}
 
 }
+
 class Mothership {
 	constructor(x, y, z,rotx=0,roty=0,rotz=0,scalefactor=600) {
 		let Mothership;
@@ -298,6 +381,16 @@ class Mothership {
 class RocketToken {
 	constructor() { }
 }
+
+function moveSceneUpdate()
+{
+	for(let i = 0; i < cliffCount; i++)
+	{
+		cliffs[i][0].update();
+		cliffs[i][1].update();
+	}
+}
+
 function getPointLight(intensity) {
 	var light = new THREE.PointLight(0xffffff, intensity);
 	light.castShadow = true;
@@ -306,6 +399,10 @@ function getPointLight(intensity) {
 }
 
 function update(renderer, scene, camera, controls) {
+	movementDelta = movementClock.getDelta();
+
+	sceneVelocity += sceneAcceleration * movementDelta;
+
 	//trying to attach the camera to the rocket so that we follow it as it moves
 	if (rocket.initialized = true) {
 		//rocket.rocketscene.add(camera);
@@ -323,9 +420,9 @@ function update(renderer, scene, camera, controls) {
 	//guard condition for first call of method render;
 	//console.log('hey');
 	rocket.update();
+	moveSceneUpdate();
 
 	updatestars();
-
 
 	requestAnimationFrame(function () {
 		update(renderer, scene, camera, controls);
@@ -381,8 +478,34 @@ window.addEventListener('keydown', function (event) {
 		//todo
 		rocket.rotateRocket('left');
 	}
-
+	// event.preventDefault();
+	// renderer.render(scene, camera);
 });
+
+window.addEventListener("keyup", function(event){
+	if ((event.key == 'w') || (event.key == 'W')) {
+		rocket.speedup();
+		//debug
+		console.log('!!rocket speed increasing');
+	}
+
+	else if ((event.key == 's') || (event.key == 'S')) {
+		rocket.speeddown();
+		//debug
+		console.log('rocket speed decreasing');
+	}
+	else if ((event.key == 'd') || (event.key == 'D')) {
+		//todo
+		rocket.stopRotateRocket('right');
+	}
+	else if ((event.key == 'a') || (event.key == 'A')) {
+		//todo
+		rocket.stopRotateRocket('left');
+	}
+	// event.preventDefault();
+	// renderer.render(scene, camera);
+})
+
 //event handler when releasing w key 
 document.addEventListener('keyup', function (event) {
 	if ((event.key == 'w') || (event.key == 'W')) {
