@@ -448,7 +448,7 @@ function update(renderer, scene, camera, controls) {
 		cameraTarget = rocketPosition.clone().add(cameraOffset);
 
 		camera.lookAt(rocketPosition);
-		camera.position.lerp(cameraTarget, 0.4);
+		camera.position.lerp(cameraTarget, 0.3);
 
 	}
 
