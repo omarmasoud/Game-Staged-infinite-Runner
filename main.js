@@ -29,6 +29,9 @@ let sceneVelocity = 100;
 
 let renderer;
 let camera;
+var cameraOffset;
+var rocketPosition = new THREE.Vector3();
+var cameraTarget = new THREE.Vector3();
 let controls;
 let box;
 
@@ -145,7 +148,11 @@ function init() {
 	camera.position.y = 90;
 	camera.position.z = 70;
 	camera.lookAt(new THREE.Vector3(80, 80, 80));
+
+
+	cameraOffset = new THREE.Vector3(10,200,400);
 	//end camera
+
 
 	//renderer block
 	renderer = new THREE.WebGLRenderer();
@@ -154,6 +161,17 @@ function init() {
 	renderer.setClearColor('rgb(113, 113, 104)');
 	document.getElementById('gameScene').appendChild(renderer.domElement);
 	//endrenderer
+
+	//Lights
+	// soft white light
+	const light = new THREE.AmbientLight( 0x404040 , 12);
+	scene.add( light );
+	
+	//rocket light
+	//const rocketLight = new THREE.SpotLight(0xFF0000,10,100,Math.PI/1.0, 0.5 , 1.0);
+    //rocketLight.position.set(0,70,0); 
+	//rocketLight.target.position.set(cameraOffset);
+    //camera.add(rocketLight);
 
 	//orbit controls for using mouse drag viewing
 	controls = new OrbitControls(camera, renderer.domElement);
@@ -423,6 +441,16 @@ function update(renderer, scene, camera, controls) {
 	moveSceneUpdate();
 
 	updatestars();
+
+	if (rocket.getposition() != null) {
+
+		rocketPosition = rocket.getposition();
+		cameraTarget = rocketPosition.clone().add(cameraOffset);
+
+		camera.lookAt(rocketPosition);
+		camera.position.lerp(cameraTarget, 0.4);
+
+	}
 
 	requestAnimationFrame(function () {
 		update(renderer, scene, camera, controls);
