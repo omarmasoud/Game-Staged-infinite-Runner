@@ -53,6 +53,9 @@ let renderer;
 let camera;
 var cameraOffset;
 var rocketPosition = new THREE.Vector3();
+var previousRocketPosition = new THREE.Vector3();
+var cameraLookAt = new THREE.Vector3();
+var previousCameraLookAt = new THREE.Vector3();
 var cameraTarget = new THREE.Vector3();
 let controls;
 let box;
@@ -176,6 +179,8 @@ function init() {
 
 
 	cameraOffset = new THREE.Vector3(0,200,400);
+	previousRocketPosition = null;
+	previousCameraLookAt = null;
 	//end camera
 
 
@@ -573,18 +578,7 @@ function update(renderer, scene, camera, controls) {
 
 	updatestars();
 
-	if (rocket.getposition() != null) {
-
-		rocketPosition = rocket.getposition().clone();
-		cameraTarget = rocketPosition.clone().add(cameraOffset);
-
-		rocketPosition.x += 60;
-		cameraTarget.x += 40;
-
-		camera.lookAt(rocketPosition);
-		camera.position.lerp(cameraTarget, 0.3);
-
-	}
+	updateCamera();
 
 	requestAnimationFrame(function () {
 		update(renderer, scene, camera, controls);
@@ -745,6 +739,44 @@ function cameraPositionLimit() {
 		if (camera.position.y > SCALE * 0.09) {
 			camera.position.y = SCALE * 0.09;
 		}
+	}
+}
+
+function updateCamera()
+{
+	if (rocket.getposition() != null) {
+
+		rocketPosition = rocket.getposition().clone();
+		cameraTarget = rocketPosition.clone().add(cameraOffset);
+
+		//rocketPosition.x += 60;
+		//cameraTarget.x += 40;
+
+		// if (previousRocketPosition == null)
+		// {
+		//  	previousRocketPosition = rocketPosition;
+		// }
+
+		cameraLookAt.x = 0 + rocketPosition.x;
+		cameraLookAt.y = 100 + rocketPosition.y;
+		cameraLookAt.z = 0 + rocketPosition.z;
+
+		
+		// if(Math.abs((previousRocketPosition.x - rocketPosition.x)) > 40 || Math.abs((previousRocketPosition.y - rocketPosition.y)) > 40  || Math.abs((previousRocketPosition.z - rocketPosition.z)) > 40 )
+		// {
+		// 	camera.lookAt(cameraLookAt);
+		// 	previousRocketPosition = rocketPosition;
+		// 	camera.position.lerp(cameraTarget, 0.3);
+		// }
+		camera.position.lerp(cameraTarget, 0.3);
+		camera.lookAt(cameraLookAt);
+
+		// if(Math.abs(rocketPosition.x - previousRocketPosition.x) > 50)
+		// {
+		//   camera.position.lerp(cameraTarget, 0.3);
+		//   previousRocketPosition = rocketPosition;
+		// }
+
 	}
 }
 var sceneview = init();
