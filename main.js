@@ -3,9 +3,18 @@ import { OrbitControls } from 'https://cdn.skypack.dev/three@0.136/examples/jsm/
 import { Water } from 'https://cdn.skypack.dev/three@0.136/examples/jsm/objects/Water.js';
 import { GLTFLoader } from 'https://cdn.skypack.dev/three@0.136/examples/jsm/loaders/GLTFLoader.js';
 
+const rockOffsetsMin = -400;
+const rockOffsetsMax = 400;
+const rockSpace = 400;
+const rockCount = 200;
+
+const rockInitialOffset = 1500;
+const rockCollideOffset = 80;
+
 const cliffOffsets = 600;
 const cliffSpace = 150;
 const cliffCount = 100;
+// const cliffCount = 0;
 const cliffScaleMin = 0.05;
 const cliffScaleMax = 0.15;
 
@@ -14,9 +23,20 @@ const destroyZ = 500;
 const rocketMaxX = 225;
 const rocketMinX = -325;
 
-const rocketSpeedX = 1000;
+const rocketSpeedX = 600;
+
+var score = 0;
+var scoreDivider = 200;
+
+const rocketOffsetX = 60;
+// const rocketOffsetY = 0;
+const rocketOffsetZ = -60;
 
 let cliffs = []
+let rocks = []
+
+var start = false;
+var stop = false;
 
 var water;
 var loader = new GLTFLoader();
@@ -24,8 +44,10 @@ var Island_scene, Island_scene2;
 var rocket;
 const SCALE = 30000;
 
-let sceneAcceleration = 5;
+let sceneAcceleration = 10;
 let sceneVelocity = 100;
+
+const waterSpeedDivision = 3000;
 
 let renderer;
 let camera;
@@ -85,6 +107,9 @@ function init() {
 
 	for(let i = 0; i < cliffCount; i++)
 		cliffs.push([new cliff(-cliffOffsets, 0, -cliffSpace*i), new cliff(cliffOffsets, 0, -cliffSpace*i)])
+	for(let i = 0; i < rockCount; i++)
+		rocks.push(new rock(randomRange(rockOffsetsMin, rockOffsetsMax), 50, -rockSpace*i - rockInitialOffset))
+		// cliffs.push(new rock(randomRange(rockOffsetsMin, rockOffsetsMax), 200, -rockSpace*i))
 
 	// cliff = new cliff(cliffOffsets, 0, 0);
 	var Mothership1=new Mothership(0,900,0,0,0,0,700);
@@ -150,7 +175,7 @@ function init() {
 	camera.lookAt(new THREE.Vector3(80, 80, 80));
 
 
-	cameraOffset = new THREE.Vector3(10,200,400);
+	cameraOffset = new THREE.Vector3(0,200,400);
 	//end camera
 
 
@@ -158,7 +183,8 @@ function init() {
 	renderer = new THREE.WebGLRenderer();
 	renderer.shadowMap.enabled = true;
 	renderer.setSize(window.innerWidth, window.innerHeight);
-	renderer.setClearColor('rgb(113, 113, 104)');
+	renderer.setClearColor('rgb(0, 0, 30)');
+	// renderer.setClearColor('rgb(113, 113, 104)');
 	document.getElementById('gameScene').appendChild(renderer.domElement);
 	//endrenderer
 
@@ -242,7 +268,7 @@ class Rocket {
 		return this.rocketscene;
 	}
 	update() {
-		if (this.rocketscene) {
+		if (this.rocketscene && !stop) {
 			isCameraColliding();
 			// camera.position.x=rocket.position.x;
 			// camera.position.y=rocket.position.y+20;
@@ -371,6 +397,7 @@ class cliff {
 			if(this.cliffScene.position.z >= destroyZ)
 			{
 				let scale = randomRange(cliffScaleMin,cliffScaleMax);
+				this.cliffScene.scale.set(scale, scale, scale);
 				this.cliffScene.position.z -= cliffCount*cliffSpace;
 			}
 			// console.log(this.cliffScene);
@@ -378,6 +405,92 @@ class cliff {
 	}
 
 }
+
+
+// class crystal {
+
+// 	constructor(x, y, z) {
+// 		let instance = this;
+// 		loader.load('assets/Models/glowing_crystals/scene.gltf', (gltf) => {
+// 			console.log('created cliff');
+// 			instance.scene = gltf.scene;
+// 			instance.scene.scale.set(0.1, 0.1, 0.1);
+// 			scene.add(instance.scene);
+// 			instance.scene.position.x = x;
+// 			instance.scene.position.y = y;
+// 			instance.scene.position.z = z;
+// 			instance.scene.rotation.y = Math.random() * Math.PI * 2;
+// 			// cliffScene.rotation.x = -1.55;
+// 		});
+// 		return this.scene;
+// 	}
+	
+// 	update()
+// 	{
+// 		if(this.scene)
+// 		{
+// 			this.scene.position.z += movementDelta*sceneVelocity;
+
+// 			if(this.scene.position.z >= destroyZ)
+// 			{
+// 				let scale = randomRange(cliffScaleMin,cliffScaleMax);
+// 				this.scene.scale.set(scale, scale, scale);
+// 				this.scene.position.z -= cliffCount*cliffSpace;
+// 			}
+// 			// console.log(this.cliffScene);
+// 		}
+// 	}
+
+// }
+
+class rock {
+
+	constructor(x, y, z) {
+		let instance = this;
+		loader.load('assets/Models/glowing_rock/scene.gltf', (gltf) => {
+			console.log('created rock');
+			instance.scene = gltf.scene;
+			instance.scene.scale.set(65, 65, 65);
+			scene.add(instance.scene);
+			instance.scene.position.x = x;
+			instance.scene.position.y = y;
+			instance.scene.position.z = z;
+			instance.scene.rotation.y = Math.random() * Math.PI * 2;
+		});
+		return this.scene;
+	}
+	
+	update()
+	{
+		if(this.scene)
+		{
+			this.scene.position.z += movementDelta*sceneVelocity;
+
+			if(this.scene.position.z >= destroyZ)
+			{
+				// let scale = randomRange(cliffScaleMin,cliffScaleMax);
+				// this.scene.scale.set(scale, scale, scale);
+				this.scene.position.z -= rockCount*rockSpace;
+			}
+
+			if(rocket.getposition())
+			{
+				let offset = rocket.getposition().clone();
+				offset.x += rocketOffsetX;
+				offset.z += rocketOffsetZ;
+	
+				offset = offset.distanceTo(this.scene.position);
+				if(offset <= rockCollideOffset)
+				{
+					stop = true;
+					console.log("collide")
+				}
+			}
+		}
+	}
+
+}
+
 
 class Mothership {
 	constructor(x, y, z,rotx=0,roty=0,rotz=0,scalefactor=600) {
@@ -402,11 +515,26 @@ class RocketToken {
 
 function moveSceneUpdate()
 {
+	if(stop || !start) return;
+
+	score += movementDelta * sceneVelocity / scoreDivider;
+	document.getElementById("score").innerHTML = "<h1>Score: " + Math.floor(score) + "</h1>";
+
 	for(let i = 0; i < cliffCount; i++)
 	{
 		cliffs[i][0].update();
 		cliffs[i][1].update();
 	}
+
+	// if(rocket.getposition() != null)
+	// {
+	// 	rocks[0].scene.position.x = rocket.getposition().x + rocketOffsetX;
+	// 	rocks[0].scene.position.y = rocket.getposition().y;
+	// 	rocks[0].scene.position.z = rocket.getposition().z + rocketOffsetZ;
+	// }
+	// new rock(.x, rocket.getposition().y, rocket.getposition().z);
+	for(let i = 0; i < rockCount; i++)
+		rocks[i].update();
 }
 
 function getPointLight(intensity) {
@@ -432,7 +560,10 @@ function update(renderer, scene, camera, controls) {
 		camera
 	);
 
-	water.material.uniforms['time'].value += 4.0 / 60.0;// increase value here to speedup water
+    water.material.uniforms['time'].value -= 4.0 / 60.0;// increase value here to speedup water
+
+    if(!stop && start)
+        water.material.uniforms['time'].value -= sceneVelocity / waterSpeedDivision;
 
 	controls.update();
 	//guard condition for first call of method render;
@@ -444,8 +575,11 @@ function update(renderer, scene, camera, controls) {
 
 	if (rocket.getposition() != null) {
 
-		rocketPosition = rocket.getposition();
+		rocketPosition = rocket.getposition().clone();
 		cameraTarget = rocketPosition.clone().add(cameraOffset);
+
+		rocketPosition.x += 60;
+		cameraTarget.x += 40;
 
 		camera.lookAt(rocketPosition);
 		camera.position.lerp(cameraTarget, 0.3);
@@ -487,6 +621,8 @@ function onWindowResize() {
 
 // event listeners for the document when keys are pressed
 window.addEventListener('keydown', function (event) {
+	start = true;
+	
 	if ((event.key == 'w') || (event.key == 'W')) {
 		rocket.speedup();
 		//debug
@@ -544,6 +680,7 @@ document.addEventListener('keyup', function (event) {
 
 //update stars
 function updatestars() {
+    // if(stop) return;
 
 	var particleSystem = scene.getObjectByName('stars');
 	particleSystem.rotation.z += 0.0005;
