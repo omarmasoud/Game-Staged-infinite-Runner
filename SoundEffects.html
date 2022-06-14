@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Rocket Runner Game</title>
+    </head>
+
+    <body>
+        <script>
+            const listener = new THREE.AudioListener();
+            camera.add(listener);
+
+            const audioLoader = new THREE.AudioLoader();
+
+            const backgroundMusic = new THREE.Audio(listener);
+            audioLoader.load('assets\Sounds\Background.mp3',function(buffer)
+            {
+                backgroundMusic.setBuffer(buffer);
+                backgroundMusic.setLoop(true);
+                backgroundMusic.setVolume(0.4);
+                backgroundMusic.play();
+            });
+
+            const crystalCollecting = new THREE.Audio(listener);
+            audioLoader.load('assets\Sounds\Spaceship_Engine.mp3',function(buffer)
+            {
+                crystalCollecting.setBuffer(buffer);
+                crystalCollecting.setLoop(false);
+                crystalCollecting.setVolume(1.0);
+            });
+
+            animate();
+
+            function animate(){
+                
+            }
+
+            function checkCollition() {
+
+            }
+
+        </script>
+    </body>
+</html>
