@@ -7,9 +7,20 @@ const rockOffsetsMin = -400;
 const rockOffsetsMax = 400;
 const rockSpace = 400;
 const rockCount = 200;
+// const rockCount = 0;
+
+// const crystalOffsetsMin = -400;
+// const crystalOffsetsMax = 400;
+const crystalSpace = 800;
+const crystalCount = 100;
+const crystalExtraOffset = 150;
+// const crystalCount = 0;
+const crystalRotationSpeed = 1;
+const crystalExtraScore = 10;
 
 const rockInitialOffset = 1500;
 const rockCollideOffset = 80;
+const crystalCollideOffset = 65;
 
 const cliffOffsets = 600;
 const cliffSpace = 150;
@@ -34,6 +45,7 @@ const rocketOffsetZ = -60;
 
 let cliffs = []
 let rocks = []
+let crystals = []
 
 var start = false;
 var stop = false;
@@ -105,14 +117,18 @@ function init() {
 	// 	  console.log('done loading');		  
 
 	//   });
-	Island_scene = new island(-500, 0, 100);
-	Island_scene2 = new island(500, 0, 100);
+	// Island_scene = new island(-500, 0, 100);
+	// Island_scene2 = new island(500, 0, 100);
+	// new crystal(0,200,200)
 
 	for(let i = 0; i < cliffCount; i++)
 		cliffs.push([new cliff(-cliffOffsets, 0, -cliffSpace*i), new cliff(cliffOffsets, 0, -cliffSpace*i)])
 	for(let i = 0; i < rockCount; i++)
 		rocks.push(new rock(randomRange(rockOffsetsMin, rockOffsetsMax), 50, -rockSpace*i - rockInitialOffset))
 		// cliffs.push(new rock(randomRange(rockOffsetsMin, rockOffsetsMax), 200, -rockSpace*i))
+	for(let i = 0; i < crystalCount; i++)
+		crystals.push(new crystal(randomRange(rockOffsetsMin, rockOffsetsMax), 50, -crystalSpace*(i+1) - rockInitialOffset - crystalExtraOffset))
+	// crystals.push(new crystal(randomRange(rockOffsetsMin, rockOffsetsMax), 50, -crystalSpace*(i-2) - rockInitialOffset))
 
 	// cliff = new cliff(cliffOffsets, 0, 0);
 	var Mothership1=new Mothership(0,900,0,0,0,0,700);
@@ -360,7 +376,7 @@ class Rocket {
 class island {
 	constructor(x, y, z) {
 		let Island_scene;
-		loader.load('assets/Models/island/island.gltf', (gltf) => {
+		loader.load('assets/Models/island/island.gltf', (gltf) => {islan
 			Island_scene = gltf.scene;
 			Island_scene.scale.set(7, 7, 7);
 			scene.add(Island_scene);
@@ -497,6 +513,59 @@ class rock {
 }
 
 
+class crystal {
+
+	constructor(x, y, z) {
+		let instance = this;
+		// loader.load('assets/Models/crystal_stone_rock/scene.gltf', (gltf) => {
+		loader.load('assets/Models/glowing_crystals/scene.gltf', (gltf) => {
+			console.log('created crystal');
+			instance.scene = gltf.scene;
+			// instance.scene.scale.set(65, 65, 65);
+			instance.scene.scale.set(0.2, 0.2, 0.2);
+			scene.add(instance.scene);
+			instance.scene.position.x = x;
+			instance.scene.position.y = y;
+			instance.scene.position.z = z;
+			instance.scene.rotation.y = Math.random() * Math.PI * 2;
+		});
+		return this.scene;
+	}
+	
+	update()
+	{
+		if(this.scene)
+		{
+			this.scene.rotation.y += movementDelta * crystalRotationSpeed;
+			this.scene.position.z += movementDelta*sceneVelocity;
+
+			if(this.scene.position.z >= destroyZ)
+			{
+				// let scale = randomRange(cliffScaleMin,cliffScaleMax);
+				// this.scene.scale.set(scale, scale, scale);
+				this.scene.visible = true;
+				this.scene.position.z -= crystalCount*crystalSpace;
+			}
+
+			if(rocket.getposition())
+			{
+				let offset = rocket.getposition().clone();
+				offset.x += rocketOffsetX;
+				offset.z += rocketOffsetZ;
+	
+				offset = offset.distanceTo(this.scene.position);
+				if(this.scene.visible && offset <= crystalCollideOffset)
+				{
+					score += crystalExtraScore;
+					this.scene.visible = false;
+					console.log("crystal")
+				}
+			}
+		}
+	}
+
+}
+
 class Mothership {
 	constructor(x, y, z,rotx=0,roty=0,rotz=0,scalefactor=600) {
 		let Mothership;
@@ -540,6 +609,8 @@ function moveSceneUpdate()
 	// new rock(.x, rocket.getposition().y, rocket.getposition().z);
 	for(let i = 0; i < rockCount; i++)
 		rocks[i].update();
+	for(let i = 0; i < crystalCount; i++)
+		crystals[i].update();
 }
 
 function getPointLight(intensity) {
