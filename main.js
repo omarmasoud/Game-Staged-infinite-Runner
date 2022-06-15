@@ -2,6 +2,7 @@ import * as THREE from 'https://cdn.skypack.dev/three@0.136';
 import { OrbitControls } from 'https://cdn.skypack.dev/three@0.136/examples/jsm/controls/OrbitControls.js';
 import { Water } from 'https://cdn.skypack.dev/three@0.136/examples/jsm/objects/Water.js';
 import { GLTFLoader } from 'https://cdn.skypack.dev/three@0.136/examples/jsm/loaders/GLTFLoader.js';
+import { GUI } from 'https://cdn.skypack.dev/three@0.136/examples/jsm/libs/lil-gui.module.min.js';
 
 const rockOffsetsMin = -400;
 const rockOffsetsMax = 400;
@@ -74,6 +75,11 @@ let box;
 
 let movementDelta = 0;
 let movementClock = new THREE.Clock();
+
+var BGAudioListener, CrystalAudioListener, RocketAudioListener;
+var BGSound, CrystalSound, RocketSound;
+const Sound = false;
+const SoundMixer = 50;
 
 let clock = new THREE.Clock();
 let scene;
@@ -199,6 +205,59 @@ function init() {
 	previousCameraLookAt = null;
 	//end camera
 
+	//Sound
+	var BGAudioListener = new THREE.AudioListener();
+  	var CrystalAudioListener = new THREE.AudioListener();
+  	var RocketAudioListener = new THREE.AudioListener();
+
+  	camera.add(BGAudioListener);
+  	camera.add(CrystalAudioListener);
+  	camera.add(RocketAudioListener);
+
+	var BGSound = new THREE.Audio(BGAudioListener);
+	var CrystalSound = new THREE.Audio(CrystalAudioListener);
+	var RocketSound = new THREE.Audio(RocketAudioListener);
+	
+	var BGAudioLoader = new THREE.AudioLoader();
+	var CrystalAudioLoader = new THREE.AudioLoader();
+	var RocketAudioLoader = new THREE.AudioLoader();
+	
+	BGAudioLoader.load('assets\Sounds\Background.mp3', function (buffer) {
+		BGSound.setBuffer(buffer);
+		BGSound.setLoop(true);
+		BGSound.setVolume(SoundMixer / 100);
+	});
+	
+	CrystalAudioLoader.load('assets\Sounds\Crystal_Collecting.mp3', function (buffer) {
+		CrystalSound.setBuffer(buffer);
+		CrystalSound.setLoop(false);
+		CrystalSound.setVolume(SoundMixer / 100);
+	});
+
+	RocketAudioLoader.load('assets\Sounds\Spaceship_Engine.mp3', function (buffer) {
+		RocketSound.setBuffer(buffer);
+		RocketSound.setLoop(true);
+		RocketSound.setVolume(SoundMixer / 100);
+	});
+
+	updateSoundMixer();
+
+	function updateSound() {
+		if (Sound) {
+			BGSound.play();
+		} 
+	  }
+	
+	function updateSoundMixer() {
+		BGSound.setVolume(SoundMixer / 100);
+		CrystalSound.setVolume(SoundMixer / 100);
+		RocketSound.setVolume(SoundMixer / 100);
+	}
+	
+	const gui = new GUI();
+	const folderSettings = gui.addFolder('Settings');
+  	folderSettings.add(Sound).listen().onChange(updateSound);
+  	folderSettings.add(SoundMixer).name('Sound Mixer').min(1).max(100).step(1).listen().onChange(updateSoundMixer);
 
 	//renderer block
 	renderer = new THREE.WebGLRenderer();
@@ -654,6 +713,9 @@ function update(renderer, scene, camera, controls) {
 	requestAnimationFrame(function () {
 		update(renderer, scene, camera, controls);
 	})
+
+	Sound=true;
+	//updateSound();
 }
 // to be used in conditions preventing the rocket from colliding with islands or other things than rocket tokens
 // change limitcollision hyperparameter to satisfy your barier needs in the game
@@ -688,12 +750,11 @@ function onWindowResize() {
 window.addEventListener('keydown', function (event) {
 	start = true;
 	
-	if ((event.key == 'w') || (event.key == 'W')) {
+	if ((event.key == 'w') || (event.key == 'W')) {	
 		rocket.speedup();
 		//debug
 		console.log('!!rocket speed increasing');
 	}
-
 	else if ((event.key == 's') || (event.key == 'S')) {
 		rocket.speeddown();
 		//debug
@@ -850,4 +911,5 @@ function updateCamera()
 
 	}
 }
+
 var sceneview = init();
