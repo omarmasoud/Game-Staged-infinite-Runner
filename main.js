@@ -6,19 +6,37 @@ import { GLTFLoader } from 'https://cdn.skypack.dev/three@0.136/examples/jsm/loa
 const rockOffsetsMin = -400;
 const rockOffsetsMax = 400;
 const rockSpace = 400;
-const rockCount = 200;
+const rockCount = 100;
+
+const islandcount =3;
+
+const Mothershipscount=3;
+// const rockCount = 0;
+
+// const crystalOffsetsMin = -400;
+// const crystalOffsetsMax = 400;
+const crystalSpace = 800;
+const crystalCount = 50;
+const crystalExtraOffset = 150;
+// const crystalCount = 0;
+const crystalRotationSpeed = 1;
+const crystalExtraScore = 10;
 
 const rockInitialOffset = 1500;
 const rockCollideOffset = 80;
+const crystalCollideOffset = 65;
 
 const cliffOffsets = 600;
 const cliffSpace = 150;
-const cliffCount = 100;
+const cliffCount = 50;
+const islandoffset=6000;
 // const cliffCount = 0;
 const cliffScaleMin = 0.05;
 const cliffScaleMax = 0.15;
 
 const destroyZ = 500;
+
+
 
 const rocketMaxX = 225;
 const rocketMinX = -325;
@@ -34,6 +52,11 @@ const rocketOffsetZ = -60;
 
 let cliffs = []
 let rocks = []
+let crystals = []
+
+let islands=[]
+
+let Motherships=[]
 
 var start = false;
 var stop = false;
@@ -59,9 +82,11 @@ var previousCameraLookAt = new THREE.Vector3();
 var cameraTarget = new THREE.Vector3();
 let controls;
 let box;
-var gameStarted = false;
+
 let movementDelta = 0;
 let movementClock = new THREE.Clock();
+const progressloader=cliffCount*2+rockCount+crystalCount+islandcount*2+4;//3 motherships 1 rocket
+var currentprogress=0
 
 let clock = new THREE.Clock();
 let scene;
@@ -86,7 +111,7 @@ function init() {
 		sunDirection: new THREE.Vector3(),
 		sunColor: 0xffffff,
 		waterColor: 0x004a7e,
-		distortionScale: 3.75,
+		distortionScale: 100,
 		fog: scene.fog !== undefined,
 	});
 	water.rotation.x = -Math.PI / 2;
@@ -105,19 +130,37 @@ function init() {
 	// 	  console.log('done loading');		  
 
 	//   });
-	Island_scene = new island(-500, 0, 100);
-	Island_scene2 = new island(500, 0, 100);
+	// Island_scene = new island(-500, 0, 100);
+	// Island_scene2 = new island(500, 0, 100);
+	// new crystal(0,200,200)
 
-	for(let i = 0; i < cliffCount; i++)
+	var Mothership1=new Mothership(0,900,-4000,0,0,0,700,true);//central moving ship
+	var Mothership2=new Mothership(2000,200,-4000,-1,1.2,0,700);//sunken ship 1
+	var Mothership3=new Mothership(-2000,200,-4200,-1,-1.6,0,700);//sunken ship 2
+	Motherships.push(Mothership1,Mothership2,Mothership3);
+	for (let i = 0; i < islandcount; i++){
+		islands.push(new island(-islandoffset,0,-islandoffset*i),new island(islandoffset,0,-islandoffset*i))
+
+	}
+	
+	for(let i = 0; i < cliffCount; i++){
 		cliffs.push([new cliff(-cliffOffsets, 0, -cliffSpace*i), new cliff(cliffOffsets, 0, -cliffSpace*i)])
-	for(let i = 0; i < rockCount; i++)
+		
+	}
+	for(let i = 0; i < rockCount; i++){
 		rocks.push(new rock(randomRange(rockOffsetsMin, rockOffsetsMax), 50, -rockSpace*i - rockInitialOffset))
+		
+	}
+
 		// cliffs.push(new rock(randomRange(rockOffsetsMin, rockOffsetsMax), 200, -rockSpace*i))
+	for(let i = 0; i < crystalCount; i++){
+		crystals.push(new crystal(randomRange(rockOffsetsMin, rockOffsetsMax), 50, -crystalSpace*(i+1) - rockInitialOffset - crystalExtraOffset))
+	
+	}
+	// crystals.push(new crystal(randomRange(rockOffsetsMin, rockOffsetsMax), 50, -crystalSpace*(i-2) - rockInitialOffset))
 
 	// cliff = new cliff(cliffOffsets, 0, 0);
-	var Mothership1=new Mothership(0,900,0,0,0,0,700);
-	var Mothership2=new Mothership(700,950,0,0,1.2,0,700);
-	var Mothership3=new Mothership(-650,900,200,0,-1.6,0,700);
+
 	rocket = new Rocket();
 
 	// Stars
@@ -208,8 +251,8 @@ function init() {
 	controls = new OrbitControls(camera, renderer.domElement);
 
 	//initial call for update to start rendering the scene frame by frame
+	
 
-	update(renderer, scene, camera, controls);
 
 	return scene;
 }
@@ -242,6 +285,18 @@ function getSphere(size) {
 
 	return mesh;
 }
+function incrementobjectloaded(){
+			currentprogress+=1;
+			console.log("current progress"+currentprogress+"/"+progressloader);
+			document.getElementById('progressbarid').setAttribute("aria-valuenow",(currentprogress/progressloader)*100);
+			document.getElementById('progressbarid').style.setProperty("--value",(currentprogress/progressloader)*100);
+
+			document.getElementById('progressbarid').style.pgPercentage=(currentprogress/progressloader)*100;
+			if(currentprogress== progressloader){
+				 document.getElementById('progressbarid').remove();
+				update(renderer, scene, camera, controls);
+			}
+}
 class Rocket {
 	constructor() {
 		this.timebefore = 0;
@@ -266,6 +321,8 @@ class Rocket {
 			this.rocketscene.rotation.x = -1.55;
 			this.rocketscene.rotation.y -= 0.1;
 			this.initialized = true;
+			incrementobjectloaded();
+			
 		});
 
 		this.rocketvelocity = 0;
@@ -358,19 +415,34 @@ class Rocket {
 }
 
 class island {
-	constructor(x, y, z) {
-		let Island_scene;
+	constructor(x, y, z,rotz=-1.2, rotx=-1.55) {
+		let instance=this;
+		this.created=false;
 		loader.load('assets/Models/island/island.gltf', (gltf) => {
-			Island_scene = gltf.scene;
-			Island_scene.scale.set(7, 7, 7);
-			scene.add(Island_scene);
-			Island_scene.position.x = x;
-			Island_scene.position.y = y;
-			Island_scene.position.z = z;
-			Island_scene.rotation.z = -1.2;
-			Island_scene.rotation.x = -1.55;
+			instance.Island_scene = gltf.scene;
+			instance.Island_scene.scale.set(100, 100, 100);
+			scene.add(instance.Island_scene);
+			instance.Island_scene.position.x = x;
+			instance.Island_scene.position.y = y;
+			instance.Island_scene.position.z = z;
+			instance.Island_scene.rotation.z = rotz;
+			instance.Island_scene.rotation.x = rotx;
+			instance.Island_scene.rotation.z = Math.random() * Math.PI * 2;
+			this.created=true;
+			incrementobjectloaded()
 		});
-		return Island_scene;
+		return this.Island_scene;
+	}
+	update(){
+		if (this.Island_scene){
+				this.Island_scene.position.z += movementDelta*sceneVelocity;
+				if(this.Island_scene.position.z >= destroyZ)
+				{
+					this.Island_scene.rotation.z = Math.random() * Math.PI * 2;
+					this.Island_scene.position.z -= islandcount*islandoffset;
+				}
+		}
+
 	}
 }
 
@@ -389,6 +461,7 @@ class cliff {
 			instance.cliffScene.position.z = z;
 			instance.cliffScene.rotation.y = Math.random() * Math.PI * 2;
 			// cliffScene.rotation.x = -1.55;
+			incrementobjectloaded();
 		});
 		return this.cliffScene;
 	}
@@ -461,6 +534,7 @@ class rock {
 			instance.scene.position.y = y;
 			instance.scene.position.z = z;
 			instance.scene.rotation.y = Math.random() * Math.PI * 2;
+			incrementobjectloaded();
 		});
 		return this.scene;
 	}
@@ -476,6 +550,7 @@ class rock {
 				// let scale = randomRange(cliffScaleMin,cliffScaleMax);
 				// this.scene.scale.set(scale, scale, scale);
 				this.scene.position.z -= rockCount*rockSpace;
+				this.scene.visible=true;
 			}
 
 			if(rocket.getposition())
@@ -485,9 +560,17 @@ class rock {
 				offset.z += rocketOffsetZ;
 	
 				offset = offset.distanceTo(this.scene.position);
-				if(offset <= rockCollideOffset)
-				{
-					stop = true;
+				if(offset <= rockCollideOffset && this.scene.visible)
+				{	
+					start = false;
+					//if (rocketMaxX-this.scene.position.x<100)
+					//	this.scene.position.x-=100;//relocating rocket
+					//else
+						this.scene.visible=false;
+						//if
+					sceneVelocity=100;//reseting scene velocity
+					score*=0.6;
+					document.getElementById("score").innerHTML = "<h1>Score: " + Math.floor(score) + "</h1>";
 					console.log("collide")
 				}
 			}
@@ -497,26 +580,109 @@ class rock {
 }
 
 
-class Mothership {
-	constructor(x, y, z,rotx=0,roty=0,rotz=0,scalefactor=600) {
-		let Mothership;
-		loader.load('assets/Models/colony_tactical_ship/scene.gltf', (gltf) => {
-			Mothership = gltf.scene;
-			Mothership.scale.set(scalefactor, scalefactor, scalefactor);
-			scene.add(Mothership);
-			Mothership.position.x = x;
-			Mothership.position.y = y;
-			Mothership.position.z = z;
-			Mothership.rotation.z = rotz;
-			Mothership.rotation.y = roty;
-			Mothership.rotation.x = rotx;
+class crystal {
+
+	constructor(x, y, z) {
+		let instance = this;
+		// loader.load('assets/Models/crystal_stone_rock/scene.gltf', (gltf) => {
+		loader.load('assets/Models/glowing_crystals/scene.gltf', (gltf) => {
+			console.log('created crystal');
+			instance.scene = gltf.scene;
+			// instance.scene.scale.set(65, 65, 65);
+			instance.scene.scale.set(0.2, 0.2, 0.2);
+			scene.add(instance.scene);
+			instance.scene.position.x = x;
+			instance.scene.position.y = y;
+			instance.scene.position.z = z;
+			instance.scene.rotation.y = Math.random() * Math.PI * 2;
+			incrementobjectloaded()
 		});
-		return Mothership;
+		return this.scene;
+	}
+	
+	update()
+	{
+		if(this.scene)
+		{
+			this.scene.rotation.y += movementDelta * crystalRotationSpeed;
+			this.scene.position.z += movementDelta*sceneVelocity;
+
+			if(this.scene.position.z >= destroyZ)
+			{
+				// let scale = randomRange(cliffScaleMin,cliffScaleMax);
+				// this.scene.scale.set(scale, scale, scale);
+				this.scene.visible = true;
+				this.scene.position.z -= crystalCount*crystalSpace;
+			}
+
+			if(rocket.getposition())
+			{
+				let offset = rocket.getposition().clone();
+				offset.x += rocketOffsetX;
+				offset.z += rocketOffsetZ;
+	
+				offset = offset.distanceTo(this.scene.position);
+				if(this.scene.visible && offset <= crystalCollideOffset)
+				{
+					score += crystalExtraScore;
+					this.scene.visible = false;
+					console.log("crystal")
+				}
+			}
+		}
+	}
+
+}
+
+class Mothership {
+	constructor(x, y, z,rotx=0,roty=0,rotz=0,scalefactor=600,moving=false) {
+		let instance =this;
+		this.moving=moving;
+		loader.load('assets/Models/colony_tactical_ship/scene.gltf', (gltf) => {
+			instance.Mothership = gltf.scene;
+			instance.Mothership.scale.set(scalefactor, scalefactor, scalefactor);
+			scene.add(instance.Mothership);
+			instance.Mothership.position.x = x;
+			instance.Mothership.position.y = y;
+			instance.Mothership.position.z = z;
+			instance.Mothership.rotation.z = rotz;
+			instance.Mothership.rotation.y = roty;
+			instance.Mothership.rotation.x = rotx;
+			incrementobjectloaded();
+		});
+		return instance.Mothership;
+		
+	}
+	update(){
+
+		if(this.Mothership)
+		{
+
+
+				if(this.moving)//simulate space ship moving faster than scene
+					this.Mothership.position.z -= movementDelta*sceneVelocity*2.5;
+				else
+					this.Mothership.position.z += movementDelta*sceneVelocity;
+				//else it is moving with same speed
+
+				if(this.Mothership.position.z >= destroyZ)
+				{
+					this.Mothership.position.z -= 6000;
+					this.Mothership.rotation.y=randomRange(1.5, -1.5);
+					this.Mothership.position.x += randomRange(200, -200);
+				}
+				else if(this.Mothership.position.z < -10000)
+				{
+					this.Mothership.position.z += 10000;
+					this.Mothership.position.x += randomRange(200, -200);
+				}
+		
+		}
 	}
 }
-class RocketToken {
-	constructor() { }
-}
+// class RocketToken {
+// 	constructor() { }
+// }
 
 function moveSceneUpdate()
 {
@@ -540,6 +706,13 @@ function moveSceneUpdate()
 	// new rock(.x, rocket.getposition().y, rocket.getposition().z);
 	for(let i = 0; i < rockCount; i++)
 		rocks[i].update();
+	for(let i = 0; i < crystalCount; i++)
+		crystals[i].update();
+
+	for(let i = 0; i < islandcount*2; i++)
+		islands[i].update();
+	for(let i = 0; i < Mothershipscount; i++)
+		Motherships[i].update();
 }
 
 function getPointLight(intensity) {
@@ -615,29 +788,26 @@ function onWindowResize() {
 
 // event listeners for the document when keys are pressed
 window.addEventListener('keydown', function (event) {
-	start = true;
-
+	
+	
 	if ((event.key == 'w') || (event.key == 'W')) {
-		gameStarted = true; 
+		start = true;
 		rocket.speedup();
 		//debug
 		console.log('!!rocket speed increasing');
 	}
 
 	else if ((event.key == 's') || (event.key == 'S')) {
-		gameStarted = true; 
 		rocket.speeddown();
 		//debug
 		console.log('rocket speed decreasing');
 	}
 	else if ((event.key == 'd') || (event.key == 'D')) {
 		//todo
-		gameStarted = true; 
 		rocket.rotateRocket('right');
 	}
 	else if ((event.key == 'a') || (event.key == 'A')) {
 		//todo
-		gameStarted = true; 
 		rocket.rotateRocket('left');
 	}
 	// event.preventDefault();
@@ -756,20 +926,25 @@ function updateCamera()
 		//rocketPosition.x += 60;
 		//cameraTarget.x += 40;
 
-		if (previousRocketPosition == null)
-		 {
-		  	previousRocketPosition = rocketPosition;
-		 }
+		// if (previousRocketPosition == null)
+		// {
+		//  	previousRocketPosition = rocketPosition;
+		// }
 
-		cameraLookAt.x =  0 + rocketPosition.x;
+		cameraLookAt.x = 0 + rocketPosition.x;
 		cameraLookAt.y = 100 + rocketPosition.y;
-		cameraLookAt.z =  0 + rocketPosition.z;
+		cameraLookAt.z = 0 + rocketPosition.z;
 
-		if(gameStarted)
-		{
+		
+		// if(Math.abs((previousRocketPosition.x - rocketPosition.x)) > 40 || Math.abs((previousRocketPosition.y - rocketPosition.y)) > 40  || Math.abs((previousRocketPosition.z - rocketPosition.z)) > 40 )
+		// {
+		// 	camera.lookAt(cameraLookAt);
+		// 	previousRocketPosition = rocketPosition;
+		// 	camera.position.lerp(cameraTarget, 0.3);
+		// }
 		camera.position.lerp(cameraTarget, 0.3);
 		camera.lookAt(cameraLookAt);
-		}
+
 		// if(Math.abs(rocketPosition.x - previousRocketPosition.x) > 50)
 		// {
 		//   camera.position.lerp(cameraTarget, 0.3);
