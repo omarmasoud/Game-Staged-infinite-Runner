@@ -59,7 +59,7 @@ var previousCameraLookAt = new THREE.Vector3();
 var cameraTarget = new THREE.Vector3();
 let controls;
 let box;
-
+var gameStarted = false;
 let movementDelta = 0;
 let movementClock = new THREE.Clock();
 
@@ -616,24 +616,28 @@ function onWindowResize() {
 // event listeners for the document when keys are pressed
 window.addEventListener('keydown', function (event) {
 	start = true;
-	
+
 	if ((event.key == 'w') || (event.key == 'W')) {
+		gameStarted = true; 
 		rocket.speedup();
 		//debug
 		console.log('!!rocket speed increasing');
 	}
 
 	else if ((event.key == 's') || (event.key == 'S')) {
+		gameStarted = true; 
 		rocket.speeddown();
 		//debug
 		console.log('rocket speed decreasing');
 	}
 	else if ((event.key == 'd') || (event.key == 'D')) {
 		//todo
+		gameStarted = true; 
 		rocket.rotateRocket('right');
 	}
 	else if ((event.key == 'a') || (event.key == 'A')) {
 		//todo
+		gameStarted = true; 
 		rocket.rotateRocket('left');
 	}
 	// event.preventDefault();
@@ -752,25 +756,20 @@ function updateCamera()
 		//rocketPosition.x += 60;
 		//cameraTarget.x += 40;
 
-		// if (previousRocketPosition == null)
-		// {
-		//  	previousRocketPosition = rocketPosition;
-		// }
+		if (previousRocketPosition == null)
+		 {
+		  	previousRocketPosition = rocketPosition;
+		 }
 
-		cameraLookAt.x = 0 + rocketPosition.x;
+		cameraLookAt.x =  0 + rocketPosition.x;
 		cameraLookAt.y = 100 + rocketPosition.y;
-		cameraLookAt.z = 0 + rocketPosition.z;
+		cameraLookAt.z =  0 + rocketPosition.z;
 
-		
-		// if(Math.abs((previousRocketPosition.x - rocketPosition.x)) > 40 || Math.abs((previousRocketPosition.y - rocketPosition.y)) > 40  || Math.abs((previousRocketPosition.z - rocketPosition.z)) > 40 )
-		// {
-		// 	camera.lookAt(cameraLookAt);
-		// 	previousRocketPosition = rocketPosition;
-		// 	camera.position.lerp(cameraTarget, 0.3);
-		// }
+		if(gameStarted)
+		{
 		camera.position.lerp(cameraTarget, 0.3);
 		camera.lookAt(cameraLookAt);
-
+		}
 		// if(Math.abs(rocketPosition.x - previousRocketPosition.x) > 50)
 		// {
 		//   camera.position.lerp(cameraTarget, 0.3);
