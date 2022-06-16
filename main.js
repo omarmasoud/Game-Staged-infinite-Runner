@@ -83,7 +83,7 @@ var previousCameraLookAt = new THREE.Vector3();
 var cameraTarget = new THREE.Vector3();
 let controls;
 let box;
-
+var gameStarted = false;
 let movementDelta = 0;
 let movementClock = new THREE.Clock();
 const progressloader=cliffCount*2+rockCount+crystalCount+islandcount*2+4;//3 motherships 1 rocket
@@ -633,6 +633,7 @@ class rock {
 				if(offset <= rockCollideOffset && this.scene.visible)
 				{	
 					start = false;
+					gameStarted = false;
 					//if (rocketMaxX-this.scene.position.x<100)
 					//	this.scene.position.x-=100;//relocating rocket
 					//else
@@ -865,6 +866,7 @@ window.addEventListener('keydown', function (event) {
 	
 	if ((event.key == 'w') || (event.key == 'W')) {
 		start = true;
+		gameStarted = true;
 		rocket.speedup();
 		//debug
 		console.log('!!rocket speed increasing');
@@ -1014,20 +1016,12 @@ function updateCamera()
 		cameraLookAt.z = 0 + rocketPosition.z;
 
 		
-		// if(Math.abs((previousRocketPosition.x - rocketPosition.x)) > 40 || Math.abs((previousRocketPosition.y - rocketPosition.y)) > 40  || Math.abs((previousRocketPosition.z - rocketPosition.z)) > 40 )
-		// {
-		// 	camera.lookAt(cameraLookAt);
-		// 	previousRocketPosition = rocketPosition;
-		// 	camera.position.lerp(cameraTarget, 0.3);
-		// }
-		camera.position.lerp(cameraTarget, 0.3);
-		camera.lookAt(cameraLookAt);
+		if(gameStarted)
+		{
+			camera.position.lerp(cameraTarget, 0.4);
+			camera.lookAt(cameraLookAt);
+		}
 
-		// if(Math.abs(rocketPosition.x - previousRocketPosition.x) > 50)
-		// {
-		//   camera.position.lerp(cameraTarget, 0.3);
-		//   previousRocketPosition = rocketPosition;
-		// }
 
 	}
 }
