@@ -2,6 +2,7 @@ import * as THREE from 'https://cdn.skypack.dev/three@0.136';
 import { OrbitControls } from 'https://cdn.skypack.dev/three@0.136/examples/jsm/controls/OrbitControls.js';
 import { Water } from 'https://cdn.skypack.dev/three@0.136/examples/jsm/objects/Water.js';
 import { GLTFLoader } from 'https://cdn.skypack.dev/three@0.136/examples/jsm/loaders/GLTFLoader.js';
+import { GUI } from 'https://cdn.skypack.dev/three@0.136/examples/jsm/libs/lil-gui.module.min.js';
 
 const rockOffsetsMin = -400;
 const rockOffsetsMax = 400;
@@ -63,7 +64,7 @@ var stop = false;
 
 var water;
 var loader = new GLTFLoader();
-var Island_scene, Island_scene2;
+//var Island_scene, Island_scene2;
 var rocket;
 const SCALE = 30000;
 
@@ -91,6 +92,14 @@ var currentprogress=0
 let clock = new THREE.Clock();
 let scene;
 const waterGeometry = new THREE.PlaneGeometry(SCALE, SCALE);
+const parameters = {
+	Sound: false,
+	SoundMixer: 50,
+	CameraLock: true,
+  };
+var BGAudioListener, CrystalAudioListener, RocketAudioListener;
+var BGSound, CrystalSound, RocketSound;
+const Sound = false;
 
 function randomRange(start, end)
 {
@@ -134,9 +143,9 @@ function init() {
 	// Island_scene2 = new island(500, 0, 100);
 	// new crystal(0,200,200)
 
-	var Mothership1=new Mothership(0,900,-4000,0,0,0,700,true);//central moving ship
-	var Mothership2=new Mothership(2000,200,-4000,-1,1.2,0,700);//sunken ship 1
-	var Mothership3=new Mothership(-2000,200,-4200,-1,-1.6,0,700);//sunken ship 2
+	var Mothership1=new Mothership(0,900,-2000,0,0,0,700,true);//central moving ship
+	var Mothership2=new Mothership(2000,170,-4000,-1,1.2,0,700);//sunken ship 1
+	var Mothership3=new Mothership(-2000,170,-4200,-1,-1.6,0,700);//sunken ship 2
 	Motherships.push(Mothership1,Mothership2,Mothership3);
 	for (let i = 0; i < islandcount; i++){
 		islands.push(new island(-islandoffset,0,-islandoffset*i),new island(islandoffset,0,-islandoffset*i))
@@ -226,6 +235,67 @@ function init() {
 	previousCameraLookAt = null;
 	//end camera
 
+		//Sound
+		var BGAudioListener = new THREE.AudioListener();
+		var CrystalAudioListener = new THREE.AudioListener();
+		var RocketAudioListener = new THREE.AudioListener();
+  
+		camera.add(BGAudioListener);
+		camera.add(CrystalAudioListener);
+		camera.add(RocketAudioListener);
+  
+	   BGSound = new THREE.Audio(BGAudioListener);
+	   CrystalSound = new THREE.Audio(CrystalAudioListener);
+	   RocketSound = new THREE.Audio(RocketAudioListener);
+	  
+	  var BGAudioLoader = new THREE.AudioLoader();
+	  var CrystalAudioLoader = new THREE.AudioLoader();
+	  var RocketAudioLoader = new THREE.AudioLoader();
+	  
+	  BGAudioLoader.load('assets/Sounds/Background.mp3', function (buffer) {
+		  BGSound.setBuffer(buffer);
+		  BGSound.setLoop(true);
+		  BGSound.setVolume(parameters.SoundMixer / 100);
+	  });
+	  
+	  CrystalAudioLoader.load('assets/Sounds/Crystal_Collecting.mp3', function (buffer) {
+		  CrystalSound.setBuffer(buffer);
+		  CrystalSound.setLoop(false);
+		  CrystalSound.setVolume(parameters.SoundMixer / 100);
+	  });
+  
+	  RocketAudioLoader.load('assets/Sounds/Spaceship_Engine.mp3', function (buffer) {
+		  RocketSound.setBuffer(buffer);
+		  RocketSound.setLoop(true);
+		  RocketSound.setVolume(parameters.SoundMixer / 100);
+	  });
+
+	  updateSoundMixer();
+	  
+	function updateSound() {
+		if (parameters.Sound) {
+			BGSound.play();
+			RocketSound.play();
+			//CrystalSound.play();
+		} 
+		else{
+			BGSound.stop();
+			RocketSound.stop();
+			CrystalSound.stop();
+		}
+	  }
+	
+	function updateSoundMixer() {
+		BGSound.setVolume(parameters.SoundMixer / 100);
+		CrystalSound.setVolume(parameters.SoundMixer / 100);
+		RocketSound.setVolume(parameters.SoundMixer / 100);
+	}
+	const gui = new GUI();
+	const folderSettings = gui.addFolder('Sound Settings');
+  	folderSettings.add(parameters,'Sound').listen().onChange(updateSound);
+  	folderSettings.add(parameters,'SoundMixer').name('Sound Mixer').min(1).max(100).step(1).listen().onChange(updateSoundMixer);
+
+  
 
 	//renderer block
 	renderer = new THREE.WebGLRenderer();
@@ -568,6 +638,7 @@ class rock {
 					//else
 						this.scene.visible=false;
 						//if
+					//RocketSound.stop();
 					sceneVelocity=100;//reseting scene velocity
 					score*=0.6;
 					document.getElementById("score").innerHTML = "<h1>Score: " + Math.floor(score) + "</h1>";
@@ -626,6 +697,8 @@ class crystal {
 				{
 					score += crystalExtraScore;
 					this.scene.visible = false;
+					if(CrystalSound!=null)
+						CrystalSound.play();
 					console.log("crystal")
 				}
 			}
@@ -667,13 +740,13 @@ class Mothership {
 
 				if(this.Mothership.position.z >= destroyZ)
 				{
-					this.Mothership.position.z -= 6000;
+					this.Mothership.position.z -= 8000;
 					this.Mothership.rotation.y=randomRange(1.5, -1.5);
 					this.Mothership.position.x += randomRange(200, -200);
 				}
-				else if(this.Mothership.position.z < -10000)
+				else if(this.Mothership.position.z < -9000)
 				{
-					this.Mothership.position.z += 10000;
+					this.Mothership.position.z += 9000;
 					this.Mothership.position.x += randomRange(200, -200);
 				}
 		
@@ -833,6 +906,11 @@ window.addEventListener("keyup", function(event){
 	else if ((event.key == 'a') || (event.key == 'A')) {
 		//todo
 		rocket.stopRotateRocket('left');
+	}
+	else if ((event.key == 'M') || (event.key == 'm')) {
+		//todo
+		
+		parameters.Sound=!parameters.Sound;
 	}
 	// event.preventDefault();
 	// renderer.render(scene, camera);
